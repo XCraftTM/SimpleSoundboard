@@ -30,6 +30,7 @@ class YtDlpScreen(private val parent: Screen?) : Screen(Text.translatable("gui.s
 
         urlField =
             TextFieldWidget(textRenderer, padding, 30, contentWidth, 20, Text.translatable("gui.simplesoundboard.youtube.url_hint"))
+        urlField.setMaxLength(1024)
         addDrawableChild(urlField)
 
         audioToggle = CyclingButtonWidget.onOffBuilder(true)
