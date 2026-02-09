@@ -9,6 +9,11 @@ import org.kvxd.simplesoundboard.config.SoundboardConfig
 class SoundboardConfigScreen(private val parent: Screen?) : Screen(Text.translatable("gui.simplesoundboard.config.title")) {
 
     override fun init() {
+        clearChildren()
+        setupWidgets()
+    }
+
+    private fun setupWidgets() {
         addDrawableChild(ButtonWidget.builder(Text.translatable("gui.simplesoundboard.back")) { close() }
             .position(width / 2 - 100, height - 30)
             .size(200, 20)
@@ -32,20 +37,40 @@ class SoundboardConfigScreen(private val parent: Screen?) : Screen(Text.translat
         )
 
         addDrawableChild(
-            VolumeSlider(width / 2 - 100, 100, 200, 20, Text.translatable("gui.simplesoundboard.config.global_local_volume"), SoundboardConfig.data.globalLocalVolume, {
-                SoundboardConfig.data.globalLocalVolume = it
-                SoundboardConfig.save()
-            })
+            CyclingButtonWidget.onOffBuilder(SoundboardConfig.data.syncAudio)
+                .build(width / 2 - 100, 100, 200, 20, Text.translatable("gui.simplesoundboard.config.sync_audio")) { _, value ->
+                    SoundboardConfig.data.syncAudio = value
+                    SoundboardConfig.save()
+                    init() // Refresh screen to show/hide sliders
+                }
         )
 
-        addDrawableChild(
-            VolumeSlider(width / 2 - 100, 125, 200, 20, Text.translatable("gui.simplesoundboard.config.global_player_volume"), SoundboardConfig.data.globalPlayerVolume, {
-                SoundboardConfig.data.globalPlayerVolume = it
-                SoundboardConfig.save()
-            })
-        )
+        if (SoundboardConfig.data.syncAudio) {
+            addDrawableChild(
+                VolumeSlider(width / 2 - 100, 125, 200, 20, Text.translatable("gui.simplesoundboard.volume.synced"), SoundboardConfig.data.globalLocalVolume, {
+                    SoundboardConfig.data.globalLocalVolume = it
+                    SoundboardConfig.data.globalPlayerVolume = it
+                    SoundboardConfig.save()
+                })
+            )
+        } else {
+            addDrawableChild(
+                VolumeSlider(width / 2 - 100, 125, 200, 20, Text.translatable("gui.simplesoundboard.config.global_local_volume"), SoundboardConfig.data.globalLocalVolume, {
+                    SoundboardConfig.data.globalLocalVolume = it
+                    SoundboardConfig.save()
+                })
+            )
+
+            addDrawableChild(
+                VolumeSlider(width / 2 - 100, 150, 200, 20, Text.translatable("gui.simplesoundboard.config.global_player_volume"), SoundboardConfig.data.globalPlayerVolume, {
+                    SoundboardConfig.data.globalPlayerVolume = it
+                    SoundboardConfig.save()
+                })
+            )
+        }
 
         val skipAmounts = listOf(5, 10, 15, 30)
+        val skipY = if (SoundboardConfig.data.syncAudio) 150 else 175
         addDrawableChild(
             ButtonWidget.builder(Text.translatable("gui.simplesoundboard.config.skip_amount").append(": ${SoundboardConfig.data.skipAmountSeconds} s")) { button ->
                 val currentIndex = skipAmounts.indexOf(SoundboardConfig.data.skipAmountSeconds)
@@ -53,7 +78,7 @@ class SoundboardConfigScreen(private val parent: Screen?) : Screen(Text.translat
                 SoundboardConfig.data.skipAmountSeconds = skipAmounts[nextIndex]
                 SoundboardConfig.save()
                 button.message = Text.translatable("gui.simplesoundboard.config.skip_amount").append(": ${SoundboardConfig.data.skipAmountSeconds} s")
-            }.position(width / 2 - 100, 150).size(200, 20).build()
+            }.position(width / 2 - 100, skipY).size(200, 20).build()
         )
     }
 

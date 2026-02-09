@@ -72,17 +72,29 @@ class SoundboardScreen(
         detailLabel.setPosition(width / 2 - detailLabel.width / 2, detailsY)
         addDrawableChild(detailLabel)
 
-        detailLocalSlider = VolumeSlider(width / 2 - 155, detailsY + 15, 100, 20, Text.translatable("gui.simplesoundboard.volume.local"), 1.0f, {
-            updateSelectedVolume(local = it)
-        })
-        detailLocalSlider.active = false
-        addDrawableChild(detailLocalSlider)
+        if (SoundboardConfig.data.syncAudio) {
+            detailLocalSlider = VolumeSlider(width / 2 - 155, detailsY + 15, 205, 20, Text.translatable("gui.simplesoundboard.volume.synced"), 1.0f, {
+                updateSelectedVolume(local = it, player = it)
+            })
+            detailLocalSlider.active = false
+            addDrawableChild(detailLocalSlider)
 
-        detailPlayerSlider = VolumeSlider(width / 2 - 50, detailsY + 15, 100, 20, Text.translatable("gui.simplesoundboard.volume.player"), 1.0f, {
-            updateSelectedVolume(player = it)
-        })
-        detailPlayerSlider.active = false
-        addDrawableChild(detailPlayerSlider)
+            // Still need to initialize player slider to avoid lateinit initialization errors, but we won't show/use it
+            detailPlayerSlider = VolumeSlider(0, 0, 0, 0, Text.empty(), 0f, {})
+            detailPlayerSlider.visible = false
+        } else {
+            detailLocalSlider = VolumeSlider(width / 2 - 155, detailsY + 15, 100, 20, Text.translatable("gui.simplesoundboard.volume.local"), 1.0f, {
+                updateSelectedVolume(local = it)
+            })
+            detailLocalSlider.active = false
+            addDrawableChild(detailLocalSlider)
+
+            detailPlayerSlider = VolumeSlider(width / 2 - 50, detailsY + 15, 100, 20, Text.translatable("gui.simplesoundboard.volume.player"), 1.0f, {
+                updateSelectedVolume(player = it)
+            })
+            detailPlayerSlider.active = false
+            addDrawableChild(detailPlayerSlider)
+        }
 
         detailBindBtn = ButtonWidget.builder(Text.translatable("gui.simplesoundboard.keybind.none")) {
             if (selectedFile != null) {
@@ -326,8 +338,14 @@ class SoundboardScreen(
         val file = selectedFile ?: return
         val data = SoundboardConfig[file.name]
 
-        if (local != null) data.localVolume = local
-        if (player != null) data.playerVolume = player
+        if (SoundboardConfig.data.syncAudio) {
+            val vol = local ?: player ?: 1.0f
+            data.localVolume = vol
+            data.playerVolume = vol
+        } else {
+            if (local != null) data.localVolume = local
+            if (player != null) data.playerVolume = player
+        }
 
         SoundboardConfig.save()
         SoundboardAudioSystem.setVolume(file.name, data.localVolume, data.playerVolume)
