@@ -6,5 +6,8 @@ import kotlinx.serialization.Serializable
 data class ConfigData(
     var playLocally: Boolean = true,
     var playWhileMuted: Boolean = true,
+    var globalLocalVolume: Float = 1.0f,
+    var globalPlayerVolume: Float = 1.0f,
+    var skipAmountSeconds: Int = 5,
     val sounds: MutableMap<String, SoundData> = mutableMapOf()
 )

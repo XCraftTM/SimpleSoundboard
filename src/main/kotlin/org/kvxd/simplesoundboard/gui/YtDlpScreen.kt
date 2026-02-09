@@ -13,7 +13,7 @@ import org.kvxd.simplesoundboard.YtDlpManager
 import java.awt.Color
 import java.util.concurrent.CompletableFuture
 
-class YtDlpScreen(private val parent: Screen?) : Screen(Text.literal("YouTube Downloader")) {
+class YtDlpScreen(private val parent: Screen?) : Screen(Text.translatable("gui.simplesoundboard.youtube.title")) {
 
     private lateinit var urlField: TextFieldWidget
     private lateinit var audioToggle: CyclingButtonWidget<Boolean>
@@ -29,18 +29,18 @@ class YtDlpScreen(private val parent: Screen?) : Screen(Text.literal("YouTube Do
         val contentWidth = width - padding * 2
 
         urlField =
-            TextFieldWidget(textRenderer, padding, 30, contentWidth, 20, Text.literal("Paste YouTube / media URL"))
+            TextFieldWidget(textRenderer, padding, 30, contentWidth, 20, Text.translatable("gui.simplesoundboard.youtube.url_hint"))
         addDrawableChild(urlField)
 
         audioToggle = CyclingButtonWidget.onOffBuilder(true)
-            .build(padding, 60, 120, 20, Text.literal("Audio only")) { _, _ -> }
+            .build(padding, 60, 120, 20, Text.translatable("gui.simplesoundboard.youtube.audio_only")) { _, _ -> }
         addDrawableChild(audioToggle)
 
-        downloadBtn = ButtonWidget.builder(Text.literal("Download")) {
+        downloadBtn = ButtonWidget.builder(Text.translatable("gui.simplesoundboard.youtube.download")) {
             val url = urlField.text.trim()
             if (url.isBlank()) {
                 client?.player?.sendMessage(
-                    Text.literal("Please provide a URL").formatted(Formatting.RED),
+                    Text.translatable("message.simplesoundboard.youtube.provide_url").formatted(Formatting.RED),
                     false
                 )
                 return@builder
@@ -66,7 +66,7 @@ class YtDlpScreen(private val parent: Screen?) : Screen(Text.literal("YouTube Do
     }
 
     private fun startDownload(url: String, audioOnly: Boolean) {
-        statusLabel.message = Text.literal("Downloading…")
+        statusLabel.message = Text.translatable("message.simplesoundboard.youtube.downloading")
         progress = 0
 
         CompletableFuture.runAsync {
@@ -87,10 +87,10 @@ class YtDlpScreen(private val parent: Screen?) : Screen(Text.literal("YouTube Do
 
             client?.execute {
                 if (result.first) {
-                    statusLabel.message = Text.literal("Finished!").formatted(Formatting.GREEN)
+                    statusLabel.message = Text.translatable("message.simplesoundboard.youtube.finished").formatted(Formatting.GREEN)
                     progress = 100
                 } else {
-                    statusLabel.message = Text.literal("Failed").formatted(Formatting.RED)
+                    statusLabel.message = Text.translatable("message.simplesoundboard.youtube.failed").formatted(Formatting.RED)
                 }
             }
         }
@@ -111,7 +111,7 @@ class YtDlpScreen(private val parent: Screen?) : Screen(Text.literal("YouTube Do
 
         context.drawText(
             textRenderer,
-            Text.literal("Save folder: ${SimpleSoundboardClient.soundDir.absolutePath}").asOrderedText(),
+            Text.translatable("gui.simplesoundboard.youtube.save_folder", SimpleSoundboardClient.soundDir.absolutePath).asOrderedText(),
             10,
             height - 40,
             Color.WHITE.rgb,

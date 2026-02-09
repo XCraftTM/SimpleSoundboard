@@ -18,9 +18,25 @@ object YtDlpManager {
     else
         "https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp"
 
+    private val ffmpegBinaryName = if (isWindows) "ffmpeg.exe" else "ffmpeg"
+    private val ffmpegDownloadUrl = if (isWindows)
+        "https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-win64-gpl-shared.zip"
+    else
+        "https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-linux64-gpl-shared.tar.xz"
+
     private fun binFile(): File {
         if (!SimpleSoundboardClient.modDir.exists()) SimpleSoundboardClient.modDir.mkdirs()
         return File(SimpleSoundboardClient.modDir, binaryName)
+    }
+
+    private fun ffmpegBinFile(): File {
+        if (!SimpleSoundboardClient.modDir.exists()) SimpleSoundboardClient.modDir.mkdirs()
+        return File(SimpleSoundboardClient.modDir, ffmpegBinaryName)
+    }
+
+    @Synchronized
+    fun ensureBinariesPresent(): Boolean {
+        return ensureYtDlpPresent() && ensureFfmpegPresent()
     }
 
     @Synchronized
@@ -29,8 +45,7 @@ object YtDlpManager {
         if (bin.exists() && bin.canExecute()) return true
 
         return try {
-            downloadBinary(bin)
-
+            downloadBinary(downloadUrl, bin)
             bin.setExecutable(true, false)
             true
         } catch (t: Throwable) {
@@ -39,21 +54,87 @@ object YtDlpManager {
         }
     }
 
+    @Synchronized
+    fun ensureFfmpegPresent(): Boolean {
+        val bin = ffmpegBinFile()
+        if (bin.exists() && bin.canExecute()) return true
+
+        return try {
+            val archiveName = if (isWindows) "ffmpeg.zip" else "ffmpeg.tar.xz"
+            val archiveFile = File(SimpleSoundboardClient.modDir, archiveName)
+            downloadBinary(ffmpegDownloadUrl, archiveFile)
+
+            if (isWindows) {
+                extractZip(archiveFile, SimpleSoundboardClient.modDir)
+            } else {
+                extractTarXz(archiveFile, SimpleSoundboardClient.modDir)
+            }
+
+            archiveFile.delete()
+            bin.setExecutable(true, false)
+            true
+        } catch (t: Throwable) {
+            t.printStackTrace()
+            false
+        }
+    }
+
+    private fun extractZip(zipFile: File, destDir: File) {
+        java.util.zip.ZipFile(zipFile).use { zip ->
+            zip.entries().asSequence().forEach { entry ->
+                val name = entry.name
+                if (!entry.isDirectory && (name.contains("/bin/") || name.startsWith("bin/"))) {
+                    val fileName = name.substringAfterLast('/')
+                    val outputFile = File(destDir, fileName)
+                    zip.getInputStream(entry).use { input ->
+                        outputFile.outputStream().use { output ->
+                            input.copyTo(output)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private fun extractTarXz(archiveFile: File, destDir: File) {
+        try {
+            // Find the root directory name in the tarball
+            val pbList = ProcessBuilder("tar", "-tJf", archiveFile.absolutePath)
+            val procList = pbList.start()
+            val firstEntry = BufferedReader(InputStreamReader(procList.inputStream)).readLine()
+            val rootDir = firstEntry?.substringBefore('/') ?: ""
+            procList.waitFor()
+
+            if (rootDir.isNotEmpty()) {
+                // Extract everything from the 'bin' directory to destDir, flattening it
+                val pb = ProcessBuilder(
+                    "tar", "-xJf", archiveFile.absolutePath,
+                    "--strip-components=2",
+                    "-C", destDir.absolutePath,
+                    "$rootDir/bin"
+                )
+                pb.start().waitFor(2, TimeUnit.MINUTES)
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+
     @Throws(Exception::class)
-    private fun downloadBinary(dest: File) {
-        val url = URI(downloadUrl).toURL()
+    private fun downloadBinary(urlStr: String, dest: File) {
+        val url = URI(urlStr).toURL()
         val conn = (url.openConnection() as HttpURLConnection).apply {
             instanceFollowRedirects = true
             connectTimeout = 15_000
             readTimeout = 30_000
-            setRequestProperty("User-Agent", "SimpleSoundboard-yt-dlp")
+            setRequestProperty("User-Agent", "SimpleSoundboard-Downloader")
         }
 
         conn.connect()
         val code = conn.responseCode
         if (code >= 400) {
             conn.disconnect()
-            throw RuntimeException("Failed to download yt-dlp: HTTP $code")
+            throw RuntimeException("Failed to download from $urlStr: HTTP $code")
         }
 
         BufferedInputStream(conn.inputStream).use { input ->
@@ -63,7 +144,6 @@ object YtDlpManager {
         }
 
         conn.disconnect()
-        dest.setExecutable(true, false)
     }
 
     fun downloadUrlIntoSoundDir(
@@ -71,19 +151,21 @@ object YtDlpManager {
         audioOnly: Boolean = true,
         onProgress: (String) -> Unit = {}
     ): Pair<Boolean, String> {
-        if (url.isBlank()) return Pair(false, "Empty URL")
+        if (url.isBlank()) return Pair(false, "message.simplesoundboard.empty_url")
 
-        if (!ensureYtDlpPresent()) {
-            return Pair(false, "Failed to ensure yt-dlp binary is available.")
+        if (!ensureBinariesPresent()) {
+            return Pair(false, "message.simplesoundboard.binaries_missing")
         }
 
         val bin = binFile()
+        val ffmpegBin = ffmpegBinFile()
         val soundDir = SimpleSoundboardClient.soundDir.also { if (!it.exists()) it.mkdirs() }
 
         val outputPattern = File(soundDir, "%(title)s.%(ext)s").absolutePath
         val args = mutableListOf<String>()
 
         args.add(bin.absolutePath)
+        args.addAll(listOf("--ffmpeg-location", ffmpegBin.absolutePath))
 
         if (audioOnly) {
             args.addAll(listOf("-x", "--audio-format", "mp3"))
@@ -112,15 +194,15 @@ object YtDlpManager {
             val finished = proc.waitFor(10, TimeUnit.MINUTES)
             if (!finished) {
                 proc.destroyForcibly()
-                return Pair(false, "yt-dlp timed out.\n${output}")
+                return Pair(false, "message.simplesoundboard.youtube.timeout")
             }
 
             val exit = proc.exitValue()
             val outStr = output.toString()
             return if (exit == 0) {
-                Pair(true, outStr.ifBlank { "Download completed." })
+                Pair(true, outStr.ifBlank { "message.simplesoundboard.download_completed" })
             } else {
-                Pair(false, "yt-dlp exit code $exit\n$outStr")
+                Pair(false, "message.simplesoundboard.youtube.exit_code")
             }
         } catch (t: Throwable) {
             t.printStackTrace()

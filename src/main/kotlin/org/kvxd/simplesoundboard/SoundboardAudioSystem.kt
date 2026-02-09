@@ -63,6 +63,9 @@ object SoundboardAudioSystem {
         var hasAudio = false
 
         val iterator = activeSounds.iterator()
+        val globalLocal = SoundboardConfig.data.globalLocalVolume
+        val globalPlayer = SoundboardConfig.data.globalPlayerVolume
+
         while (iterator.hasNext()) {
             val sound = iterator.next()
 
@@ -71,17 +74,21 @@ object SoundboardAudioSystem {
                 continue
             }
 
+            if (sound.isPaused) continue
+
             hasAudio = true
 
             val samplesToRead = min(FRAME_SIZE, sound.remaining)
+            val pVol = sound.playerVolume * globalPlayer
+            val lVol = sound.localVolume * globalLocal
 
             for (i in 0 until samplesToRead) {
                 val rawSample = sound.readNext()
 
-                mixSample(mixedAudioPlayer, i, rawSample, sound.playerVolume)
+                mixSample(mixedAudioPlayer, i, rawSample, pVol)
 
                 if (playLocally) {
-                    mixSample(mixedAudioLocal, i, rawSample, sound.localVolume)
+                    mixSample(mixedAudioLocal, i, rawSample, lVol)
                 }
             }
         }
@@ -110,12 +117,12 @@ object SoundboardAudioSystem {
         val api = clientApi
 
         if (api == null) {
-            client.player?.sendMessage(Text.of("§cVoice chat not connected!"), true)
+            client.player?.sendMessage(Text.translatable("message.simplesoundboard.vc_not_connected"), true)
             return
         }
 
         if (api.isMuted && !SoundboardConfig.data.playWhileMuted) {
-            client.player?.sendMessage(Text.of("§cCannot play soundboard while muted!"), true)
+            client.player?.sendMessage(Text.translatable("message.simplesoundboard.muted_error"), true)
             return
         }
 
@@ -123,10 +130,16 @@ object SoundboardAudioSystem {
             try {
                 val pcmData = decodeMp3(file)
                 if (pcmData != null && pcmData.isNotEmpty()) {
-                    activeSounds.add(PlayingSound(file.name, pcmData, localVol, playerVol))
+                    val sound = PlayingSound(file.name, pcmData, localVol, playerVol)
+                    val data = SoundboardConfig[file.name]
+                    if (data.startingPoint > 0f) {
+                        sound.setCursor(data.startingPoint)
+                    }
+                    sound.isLooping = data.loop
+                    activeSounds.add(sound)
                 } else {
                     client.execute {
-                        client.player?.sendMessage(Text.of("§cFailed to decode: ${file.name}"), false)
+                        client.player?.sendMessage(Text.translatable("message.simplesoundboard.decode_failed", file.name), false)
                     }
                 }
             } catch (e: Exception) {
@@ -141,6 +154,46 @@ object SoundboardAudioSystem {
 
     fun stop(file: String) {
         activeSounds.removeIf { it.name == file }
+    }
+
+    fun pause(file: String) {
+        activeSounds.forEach { if (it.name == file) it.isPaused = true }
+    }
+
+    fun resume(file: String) {
+        activeSounds.forEach { if (it.name == file) it.isPaused = false }
+    }
+
+    fun setLooping(file: String, looping: Boolean) {
+        activeSounds.forEach { if (it.name == file) it.isLooping = looping }
+    }
+
+    fun setCursor(file: String, progress: Float) {
+        activeSounds.forEach { if (it.name == file) it.setCursor(progress) }
+    }
+
+    fun skip(file: String, seconds: Int) {
+        activeSounds.forEach { if (it.name == file) it.skip(seconds) }
+    }
+
+    fun getProgress(file: String): Float {
+        return activeSounds.find { it.name == file }?.progress ?: -1f
+    }
+
+    fun getTimeSeconds(file: String): Int {
+        return activeSounds.find { it.name == file }?.timeSeconds ?: 0
+    }
+
+    fun getDurationSeconds(file: String): Int {
+        return activeSounds.find { it.name == file }?.durationSeconds ?: 0
+    }
+
+    fun isPaused(file: String): Boolean {
+        return activeSounds.any { it.name == file && it.isPaused }
+    }
+
+    fun getActiveSoundName(): String? {
+        return activeSounds.firstOrNull { !it.isFinished }?.name
     }
 
     fun setVolume(file: String, localVol: Float, playerVol: Float) {
@@ -162,14 +215,41 @@ object SoundboardAudioSystem {
         return try {
             BufferedInputStream(Files.newInputStream(file.toPath())).use { stream ->
                 val decoder = currentApi.createMp3Decoder(stream) ?: return null
-                val rawPcm = decoder.decode()
+                var rawPcm = decoder.decode()
                 val format = decoder.audioFormat
-                if (format.channels == 2) stereoToMono(rawPcm) else rawPcm
+
+                if (format.channels == 2) {
+                    rawPcm = stereoToMono(rawPcm)
+                }
+
+                if (format.sampleRate != 48000f) {
+                    rawPcm = resample(rawPcm, format.sampleRate.toInt(), 48000)
+                }
+                rawPcm
             }
         } catch (e: Exception) {
             System.err.println("Error decoding ${file.name}: ${e.message}")
             null
         }
+    }
+
+    private fun resample(input: ShortArray, inputRate: Int, outputRate: Int): ShortArray {
+        val factor = inputRate.toDouble() / outputRate.toDouble()
+        val outputSize = (input.size / factor).toInt()
+        val output = ShortArray(outputSize)
+
+        for (i in 0 until outputSize) {
+            val inputIndex = i * factor
+            val index1 = inputIndex.toInt()
+            val index2 = min(index1 + 1, input.size - 1)
+            val fraction = inputIndex - index1
+
+            val s1 = input[index1].toInt()
+            val s2 = input[index2].toInt()
+
+            output[i] = (s1 + fraction * (s2 - s1)).toInt().toShort()
+        }
+        return output
     }
 
     private fun stereoToMono(stereo: ShortArray): ShortArray {
@@ -190,14 +270,41 @@ object SoundboardAudioSystem {
     ) {
 
         private var cursor = 0
+        @Volatile var isPaused = false
+        @Volatile var isLooping = false
 
         val isFinished: Boolean
-            get() = cursor >= samples.size
+            get() = !isLooping && cursor >= samples.size
 
         val remaining: Int
-            get() = samples.size - cursor
+            get() = if (isLooping) FRAME_SIZE else samples.size - cursor
+
+        val progress: Float
+            get() = if (samples.isEmpty()) 0f else cursor.toFloat() / samples.size.toFloat()
+
+        val timeSeconds: Int
+            get() = cursor / 48000
+
+        val durationSeconds: Int
+            get() = samples.size / 48000
+
+        fun setCursor(progress: Float) {
+            cursor = (progress * samples.size).toInt().coerceIn(0, samples.size)
+        }
+
+        fun skip(seconds: Int) {
+            val sampleDelta = seconds * 48000
+            cursor = (cursor + sampleDelta).coerceIn(0, samples.size)
+        }
 
         fun readNext(): Short {
+            if (cursor >= samples.size) {
+                if (isLooping) {
+                    cursor = 0
+                } else {
+                    return 0
+                }
+            }
             return if (cursor < samples.size) samples[cursor++] else 0
         }
     }

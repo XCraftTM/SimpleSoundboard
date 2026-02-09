@@ -11,7 +11,8 @@ class VolumeSlider(
     x: Int, y: Int, width: Int, height: Int,
     private val prefix: Text,
     initialValue: Float,
-    private val onChange: (Float) -> Unit
+    private val onChange: (Float) -> Unit,
+    private val messageProvider: ((Float) -> Text)? = null
 ) : SliderWidget(x, y, width, height, Text.empty(), initialValue.toDouble()) {
 
     init {
@@ -24,6 +25,11 @@ class VolumeSlider(
         applyValue()
     }
 
+    fun setValueQuietly(newValue: Float) {
+        this.value = newValue.toDouble()
+        updateMessage()
+    }
+
     override fun renderWidget(context: DrawContext, mouseX: Int, mouseY: Int, delta: Float) {
         super.renderWidget(context, mouseX, mouseY, delta)
 
@@ -31,7 +37,7 @@ class VolumeSlider(
 
         val tr = MinecraftClient.getInstance().textRenderer
 
-        val drawText = Text.literal("").append(prefix).append(": None")
+        val drawText = Text.translatable("gui.simplesoundboard.volume.none_format", prefix)
 
         val textWidth = tr.getWidth(drawText)
         val textX = this.x + (this.width - textWidth) / 2
@@ -42,8 +48,12 @@ class VolumeSlider(
     }
 
     override fun updateMessage() {
-        val percent = (value * 100).roundToInt()
-        message = Text.literal("").append(prefix).append(": ${percent}%")
+        if (messageProvider != null) {
+            message = messageProvider.invoke(value.toFloat())
+        } else {
+            val percent = (value * 100).roundToInt()
+            message = Text.translatable("gui.simplesoundboard.volume.format", prefix, percent)
+        }
     }
 
     override fun applyValue() {

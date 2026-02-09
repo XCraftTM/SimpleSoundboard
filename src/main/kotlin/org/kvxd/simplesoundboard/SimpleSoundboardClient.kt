@@ -26,8 +26,9 @@ class SimpleSoundboardClient : ClientModInitializer {
 
         private val pressedKeys = mutableSetOf<Int>()
 
-        val soundDir = File(FabricLoader.getInstance().gameDir.toFile(), "soundboard")
-        val modDir = File(FabricLoader.getInstance().gameDir.toFile(), "soundboard")
+        private val rootDir = File(FabricLoader.getInstance().gameDir.toFile(), "soundboard")
+        val soundDir = File(rootDir, "sounds")
+        val modDir = File(rootDir, "bin")
     }
 
     override fun onInitializeClient() {
