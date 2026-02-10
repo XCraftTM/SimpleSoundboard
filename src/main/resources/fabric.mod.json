@@ -2,10 +2,11 @@
   "schemaVersion": 1,
   "id": "simplesoundboard",
   "version": "${version}",
-  "name": "Simple Soundboard",
-  "description": "Soundboard mod for simple voice mod",
+  "name": "Simple Soundboard (Fork)",
+  "description": "Soundboard mod for Simple Voice Chat. Forked from the original Simple Soundboard mod by kvxd, with additional features and improvements.",
   "authors": [
-    "kvxd"
+    "kvxd",
+    "XCraftTM"
   ],
   "contact": {
     "homepage": "https://github.com/0x1bd/SimpleSoundboard",

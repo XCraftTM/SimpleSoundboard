@@ -149,7 +149,8 @@ object YtDlpManager {
     fun downloadUrlIntoSoundDir(
         url: String,
         audioOnly: Boolean = true,
-        onProgress: (String) -> Unit = {}
+        onProgress: (String) -> Unit = {},
+        onProcessStart: (Process) -> Unit = {}
     ): Pair<Boolean, String> {
         if (url.isBlank()) return Pair(false, "message.simplesoundboard.empty_url")
 
@@ -180,15 +181,31 @@ object YtDlpManager {
             }
 
             val proc = pb.start()
+            onProcessStart(proc)
 
             val output = StringBuilder()
-            BufferedReader(InputStreamReader(proc.inputStream)).use { r ->
-                var line: String?
-                while (r.readLine().also { line = it } != null) {
-                    output.appendLine(line)
-
-                    onProgress(line!!)
+            val reader = BufferedReader(InputStreamReader(proc.inputStream))
+            val lineBuffer = StringBuilder()
+            var charInt: Int
+            while (reader.read().also { charInt = it } != -1) {
+                val c = charInt.toChar()
+                if (c == '\n' || c == '\r') {
+                    val line = lineBuffer.toString()
+                    if (line.isNotBlank()) {
+                        output.appendLine(line)
+                        onProgress(line)
+                    }
+                    lineBuffer.setLength(0)
+                } else {
+                    lineBuffer.append(c)
                 }
+            }
+
+            // Send any remaining text in the buffer
+            if (lineBuffer.isNotEmpty()) {
+                val line = lineBuffer.toString()
+                output.appendLine(line)
+                onProgress(line)
             }
 
             val finished = proc.waitFor(10, TimeUnit.MINUTES)

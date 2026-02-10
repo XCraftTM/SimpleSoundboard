@@ -12,6 +12,8 @@ import net.minecraft.util.Identifier
 import org.kvxd.simplesoundboard.config.SoundboardConfig
 import org.kvxd.simplesoundboard.gui.SoundboardScreen
 import org.lwjgl.glfw.GLFW
+import org.slf4j.Logger
+import org.slf4j.LoggerFactory
 import java.io.File
 
 class SimpleSoundboardClient : ClientModInitializer {
@@ -19,10 +21,12 @@ class SimpleSoundboardClient : ClientModInitializer {
     companion object {
 
         const val MOD_ID = "simplesoundboard"
+        val LOGGER: Logger? = LoggerFactory.getLogger(MOD_ID)
 
         val KEY_CATEGORY: KeyBinding.Category = KeyBinding.Category.create(Identifier.of(MOD_ID, "main"))
 
         lateinit var OPEN_GUI_KEY: KeyBinding
+        lateinit var STOP_ALL_KEY: KeyBinding
 
         private val pressedKeys = mutableSetOf<Int>()
 
@@ -35,7 +39,15 @@ class SimpleSoundboardClient : ClientModInitializer {
         OPEN_GUI_KEY = KeyBindingHelper.registerKeyBinding(
             KeyBinding(
                 "key.$MOD_ID.open",
-                GLFW.GLFW_KEY_J,
+                GLFW.GLFW_KEY_X,
+                KEY_CATEGORY
+            )
+        )
+
+        STOP_ALL_KEY = KeyBindingHelper.registerKeyBinding(
+            KeyBinding(
+                "key.$MOD_ID.stop_all",
+                GLFW.GLFW_KEY_K,
                 KEY_CATEGORY
             )
         )
@@ -51,6 +63,10 @@ class SimpleSoundboardClient : ClientModInitializer {
 
             if (OPEN_GUI_KEY.wasPressed()) {
                 client.setScreen(SoundboardScreen())
+            }
+
+            if (STOP_ALL_KEY.wasPressed()) {
+                SoundboardAudioSystem.stopAll()
             }
 
             if (client.currentScreen == null) {

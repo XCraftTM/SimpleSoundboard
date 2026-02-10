@@ -18,6 +18,8 @@ import net.minecraft.util.Util
 import org.kvxd.simplesoundboard.SimpleSoundboardClient
 import org.kvxd.simplesoundboard.SoundboardAudioSystem
 import org.kvxd.simplesoundboard.config.SoundboardConfig
+import org.kvxd.simplesoundboard.gui.components.ResultListWidget
+import org.kvxd.simplesoundboard.gui.components.VolumeSlider
 import org.lwjgl.glfw.GLFW
 import java.awt.Color
 import java.io.File
@@ -28,8 +30,8 @@ class SoundboardScreen(
 
     private val mc = MinecraftClient.getInstance()
 
-    private val bottomPaneHeight = 125
-    private val headerHeight = 55
+    private val bottomPaneHeight = 120
+    private val headerHeight = 50
 
     private lateinit var queryField: TextFieldWidget
     private lateinit var resultsList: ResultListWidget
@@ -52,15 +54,18 @@ class SoundboardScreen(
     private var results: List<File> = emptyList()
 
     override fun init() {
-        val padding = 10
-        val searchFieldWidth = width - 2 * padding
-        val contentWidth = width - 2 * padding
+        val actionButtonWidth = 80
+        val buttonSpacing = 5
+        val totalActionWidth = (actionButtonWidth * 5) + (buttonSpacing * 4)
+
+        val searchFieldWidth = totalActionWidth
+        val contentWidth = totalActionWidth
 
         val titleWidget = TextWidget(Text.translatable("gui.simplesoundboard.title").formatted(Formatting.BOLD), textRenderer)
         titleWidget.setPosition(width / 2 - titleWidget.width / 2, 5)
         addDrawableChild(titleWidget)
 
-        queryField = TextFieldWidget(textRenderer, padding, 20, searchFieldWidth, 20, Text.translatable("gui.simplesoundboard.search_hint"))
+        queryField = TextFieldWidget(textRenderer, width / 2 - searchFieldWidth / 2, 20, searchFieldWidth, 20, Text.translatable("gui.simplesoundboard.search_hint"))
         queryField.setChangedListener { scanSounds() }
         addDrawableChild(queryField)
 
@@ -166,15 +171,13 @@ class SoundboardScreen(
         forwardBtn.active = false
         addDrawableChild(forwardBtn)
 
-        loopBtn = ButtonWidget.builder(Text.literal("🔁")) {
-            val file = selectedFile ?: return@builder
-            val data = SoundboardConfig[file.name]
-            data.loop = !data.loop
+        loopBtn = ButtonWidget.builder(Text.literal(if (SoundboardConfig.data.loopAll) "🔁" else "🔄")) {
+            SoundboardConfig.data.loopAll = !SoundboardConfig.data.loopAll
             SoundboardConfig.save()
-            SoundboardAudioSystem.setLooping(file.name, data.loop)
-            it.message = Text.literal(if (data.loop) "🔁" else "🔄").formatted(if (data.loop) Formatting.WHITE else Formatting.GRAY)
+            SoundboardAudioSystem.setGlobalLooping(SoundboardConfig.data.loopAll)
+            it.message = Text.literal(if (SoundboardConfig.data.loopAll) "🔁" else "🔄").formatted(if (SoundboardConfig.data.loopAll) Formatting.WHITE else Formatting.GRAY)
         }.size(30, 20).position(width / 2 + 20, detailsY + 65).build()
-        loopBtn.active = false
+        loopBtn.active = true
         addDrawableChild(loopBtn)
 
         setStartBtn = ButtonWidget.builder(Text.translatable("gui.simplesoundboard.set_start")) {
@@ -192,12 +195,22 @@ class SoundboardScreen(
             .position(width / 2 - 75, height - 23)
             .build())
 
-        val listTop = headerHeight + 14
+        val listTop = headerHeight + 25
         val listBottom = height - bottomPaneHeight
         val itemHeight = 22
+        val startX = width / 2 - contentWidth / 2
 
-        resultsList = ResultListWidget(mc, contentWidth, listBottom - listTop, listTop, itemHeight)
-        resultsList.setX(padding)
+        resultsList = ResultListWidget(
+            mc,
+            startX,
+            contentWidth,
+            listBottom - listTop,
+            listTop,
+            itemHeight,
+            onSelect = { selectSound(it) },
+            onRefresh = { scanSounds() },
+            getSelectedFile = { selectedFile }
+        )
         addDrawableChild(resultsList)
 
         scanSounds()
@@ -301,7 +314,6 @@ class SoundboardScreen(
             setStartBtn.active = false
             backBtn.active = false
             forwardBtn.active = false
-            loopBtn.active = false
         } else {
             val data = SoundboardConfig[file.name]
 
@@ -329,8 +341,7 @@ class SoundboardScreen(
             setStartBtn.active = true
             backBtn.active = true
             forwardBtn.active = true
-            loopBtn.active = true
-            loopBtn.message = Text.literal(if (data.loop) "🔁" else "🔄").formatted(if (data.loop) Formatting.WHITE else Formatting.GRAY)
+            // loopBtn state is now global and always managed
         }
     }
 
@@ -363,9 +374,6 @@ class SoundboardScreen(
 
     override fun render(context: DrawContext, mouseX: Int, mouseY: Int, delta: Float) {
         super.render(context, mouseX, mouseY, delta)
-
-        val lineY = height - bottomPaneHeight
-        context.fill(10, lineY, width - 10, lineY + 1, Color.GRAY.rgb)
     }
 
     override fun close() {
@@ -374,6 +382,21 @@ class SoundboardScreen(
     }
 
     override fun keyPressed(input: KeyInput): Boolean {
+        if (queryField.isFocused && (input.key == GLFW.GLFW_KEY_ENTER || input.key == GLFW.GLFW_KEY_KP_ENTER)) {
+            if (results.isNotEmpty()) {
+                val file = results[0]
+                selectSound(file)
+                val data = SoundboardConfig[file.name]
+
+                if (SoundboardAudioSystem.isPlaying(file.name)) {
+                    SoundboardAudioSystem.stop(file.name)
+                } else {
+                    SoundboardAudioSystem.playFile(file, data.localVolume, data.playerVolume)
+                }
+                return true
+            }
+        }
+
         if (isBinding && selectedFile != null) {
             val file = selectedFile!!.name
             val data = SoundboardConfig[file]
@@ -410,7 +433,6 @@ class SoundboardScreen(
             setStartBtn.active = isPlaying
             backBtn.active = isPlaying
             forwardBtn.active = isPlaying
-            loopBtn.active = isPlaying
 
             if (isPlaying) {
                 val mouseX = mc.mouse.x * width.toDouble() / mc.window.width.toDouble()
@@ -433,7 +455,6 @@ class SoundboardScreen(
             setStartBtn.active = false
             backBtn.active = false
             forwardBtn.active = false
-            loopBtn.active = false
         }
     }
 
@@ -455,93 +476,6 @@ class SoundboardScreen(
             }
         } catch (_: Exception) {
             -1
-        }
-    }
-
-    private inner class ResultListWidget(
-        client: MinecraftClient, width: Int, height: Int, y: Int, itemHeight: Int
-    ) : ElementListWidget<ResultListWidget.Entry>(client, width, height, y, itemHeight) {
-
-        fun setResults(results: List<File>) {
-            clearEntries()
-            results.forEach { addEntry(Entry(it)) }
-            scrollY = 0.0
-        }
-
-        override fun getRowWidth(): Int = width - 20
-
-        inner class Entry(val file: File) : ElementListWidget.Entry<Entry>() {
-
-            private val playBtn: ButtonWidget
-            private val favBtn: ButtonWidget
-            private val elements = mutableListOf<Element>()
-            private val selectables = mutableListOf<Selectable>()
-
-            init {
-                val data = SoundboardConfig[file.name]
-
-                favBtn = ButtonWidget.builder(
-                    Text.literal(if (data.favorite) "★" else "☆")
-                        .formatted(if (data.favorite) Formatting.GOLD else Formatting.GRAY)
-                ) {
-                    data.favorite = !data.favorite
-                    SoundboardConfig.save()
-                    scanSounds()
-                }.size(20, 20).build()
-
-                playBtn = ButtonWidget.builder(Text.translatable("gui.simplesoundboard.play")) {
-                    if (SoundboardAudioSystem.isPlaying(file.name)) {
-                        SoundboardAudioSystem.stop(file.name)
-                    } else {
-                        val currentData = SoundboardConfig[file.name]
-                        SoundboardAudioSystem.playFile(file, currentData.localVolume, currentData.playerVolume)
-                    }
-                }.size(40, 20).build()
-
-                elements.add(favBtn)
-                elements.add(playBtn)
-                selectables.add(favBtn)
-                selectables.add(playBtn)
-            }
-
-            override fun render(context: DrawContext, mouseX: Int, mouseY: Int, hovered: Boolean, deltaTicks: Float) {
-                val isPlaying = SoundboardAudioSystem.isPlaying(file.name)
-                playBtn.message =
-                    if (isPlaying) Text.translatable("gui.simplesoundboard.stop").formatted(Formatting.RED) else Text.translatable("gui.simplesoundboard.play")
-
-                if (selectedFile?.name == file.name) {
-                    context.fill(x, y + 1, x + width, y + height - 1, 0x33FFFFFF)
-                }
-
-                val textY = y + (height - textRenderer.fontHeight) / 2 + 1
-                var nameText = file.nameWithoutExtension
-
-                if (textRenderer.getWidth(nameText) > width - 70) {
-                    nameText = textRenderer.trimToWidth(nameText, width - 75) + "..."
-                }
-
-                val textColor = if (isPlaying) Color.YELLOW.rgb else Color.WHITE.rgb
-                context.drawText(textRenderer, nameText, x + 25, textY, textColor, true)
-
-                favBtn.x = x
-                favBtn.y = y + (height - 20) / 2
-                favBtn.render(context, mouseX, mouseY, deltaTicks)
-
-                playBtn.x = x + width - playBtn.width
-                playBtn.y = y + (height - 20) / 2
-                playBtn.render(context, mouseX, mouseY, deltaTicks)
-            }
-
-            override fun mouseClicked(click: Click, doubled: Boolean): Boolean {
-                if (favBtn.mouseClicked(click, doubled)) return true
-                if (playBtn.mouseClicked(click, doubled)) return true
-
-                selectSound(file)
-                return true
-            }
-
-            override fun children() = elements
-            override fun selectableChildren() = selectables
         }
     }
 }

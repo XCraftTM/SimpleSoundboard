@@ -57,10 +57,12 @@ object SoundboardAudioSystem {
 
         if (activeSounds.isEmpty()) return
 
-        val mixedAudioPlayer = ShortArray(FRAME_SIZE)
-        val mixedAudioLocal = ShortArray(FRAME_SIZE)
         val playLocally = SoundboardConfig.data.playLocally
         var hasAudio = false
+
+        // Use IntArray accumulators to prevent intermediate clipping
+        val accumulatorPlayer = IntArray(FRAME_SIZE)
+        val accumulatorLocal = IntArray(FRAME_SIZE)
 
         val iterator = activeSounds.iterator()
         val globalLocal = SoundboardConfig.data.globalLocalVolume
@@ -84,16 +86,24 @@ object SoundboardAudioSystem {
 
             for (i in 0 until samplesToRead) {
                 val rawSample = sound.readNext()
-
-                mixSample(mixedAudioPlayer, i, rawSample, pVol)
-
+                accumulatorPlayer[i] += (rawSample * pVol).toInt()
                 if (playLocally) {
-                    mixSample(mixedAudioLocal, i, rawSample, lVol)
+                    accumulatorLocal[i] += (rawSample * lVol).toInt()
                 }
             }
         }
 
         if (hasAudio) {
+            val mixedAudioPlayer = ShortArray(FRAME_SIZE)
+            val mixedAudioLocal = ShortArray(FRAME_SIZE)
+
+            for (i in 0 until FRAME_SIZE) {
+                mixedAudioPlayer[i] = accumulatorPlayer[i].coerceIn(Short.MIN_VALUE.toInt(), Short.MAX_VALUE.toInt()).toShort()
+                if (playLocally) {
+                    mixedAudioLocal[i] = accumulatorLocal[i].coerceIn(Short.MIN_VALUE.toInt(), Short.MAX_VALUE.toInt()).toShort()
+                }
+            }
+
             event.mergeAudio(mixedAudioPlayer)
 
             if (playLocally) {
@@ -102,14 +112,32 @@ object SoundboardAudioSystem {
         }
     }
 
-    private fun mixSample(buffer: ShortArray, index: Int, sample: Short, volume: Float) {
-        val weightedSample = (sample * volume).toInt()
-        var result = buffer[index] + weightedSample
+    private fun resample(input: ShortArray, inputRate: Int, outputRate: Int): ShortArray {
+        // Cubic Catmull-Rom Interpolation
+        val factor = inputRate.toDouble() / outputRate.toDouble()
+        val outputSize = (input.size / factor).toInt()
+        val output = ShortArray(outputSize)
 
-        if (result > Short.MAX_VALUE) result = Short.MAX_VALUE.toInt()
-        else if (result < Short.MIN_VALUE) result = Short.MIN_VALUE.toInt()
+        for (i in 0 until outputSize) {
+            val inputIndex = i * factor
+            val index = inputIndex.toInt()
+            val fraction = inputIndex - index
 
-        buffer[index] = result.toShort()
+            val p0 = if (index > 0) input[index - 1].toDouble() else input[index].toDouble()
+            val p1 = input[index].toDouble()
+            val p2 = if (index < input.size - 1) input[index + 1].toDouble() else p1
+            val p3 = if (index < input.size - 2) input[index + 2].toDouble() else p2
+
+            val a = -0.5 * p0 + 1.5 * p1 - 1.5 * p2 + 0.5 * p3
+            val b = p0 - 2.5 * p1 + 2.0 * p2 - 0.5 * p3
+            val c = -0.5 * p0 + 0.5 * p2
+            val d = p1
+
+            val sample = (a * fraction * fraction * fraction) + (b * fraction * fraction) + (c * fraction) + d
+
+            output[i] = sample.coerceIn(Short.MIN_VALUE.toDouble(), Short.MAX_VALUE.toDouble()).toInt().toShort()
+        }
+        return output
     }
 
     fun playFile(file: File, localVol: Float, playerVol: Float) {
@@ -126,6 +154,10 @@ object SoundboardAudioSystem {
             return
         }
 
+        if (SoundboardConfig.data.singleSongAtATime) {
+            stopAll()
+        }
+
         CompletableFuture.runAsync {
             try {
                 val pcmData = decodeMp3(file)
@@ -135,7 +167,7 @@ object SoundboardAudioSystem {
                     if (data.startingPoint > 0f) {
                         sound.setCursor(data.startingPoint)
                     }
-                    sound.isLooping = data.loop
+                    sound.isLooping = SoundboardConfig.data.loopAll
                     activeSounds.add(sound)
                 } else {
                     client.execute {
@@ -164,8 +196,8 @@ object SoundboardAudioSystem {
         activeSounds.forEach { if (it.name == file) it.isPaused = false }
     }
 
-    fun setLooping(file: String, looping: Boolean) {
-        activeSounds.forEach { if (it.name == file) it.isLooping = looping }
+    fun setGlobalLooping(looping: Boolean) {
+        activeSounds.forEach { it.isLooping = looping }
     }
 
     fun setCursor(file: String, progress: Float) {
@@ -233,24 +265,7 @@ object SoundboardAudioSystem {
         }
     }
 
-    private fun resample(input: ShortArray, inputRate: Int, outputRate: Int): ShortArray {
-        val factor = inputRate.toDouble() / outputRate.toDouble()
-        val outputSize = (input.size / factor).toInt()
-        val output = ShortArray(outputSize)
 
-        for (i in 0 until outputSize) {
-            val inputIndex = i * factor
-            val index1 = inputIndex.toInt()
-            val index2 = min(index1 + 1, input.size - 1)
-            val fraction = inputIndex - index1
-
-            val s1 = input[index1].toInt()
-            val s2 = input[index2].toInt()
-
-            output[i] = (s1 + fraction * (s2 - s1)).toInt().toShort()
-        }
-        return output
-    }
 
     private fun stereoToMono(stereo: ShortArray): ShortArray {
         val mono = ShortArray(stereo.size / 2)

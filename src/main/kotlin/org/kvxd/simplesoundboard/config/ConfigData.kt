@@ -10,5 +10,7 @@ data class ConfigData(
     var globalPlayerVolume: Float = 1.0f,
     var skipAmountSeconds: Int = 5,
     var syncAudio: Boolean = false,
+    var singleSongAtATime: Boolean = false,
+    var loopAll: Boolean = false,
     val sounds: MutableMap<String, SoundData> = mutableMapOf()
 )
