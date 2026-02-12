@@ -1,13 +1,9 @@
-package org.kvxd.simplesoundboard.gui
+package dev.xcrafttm.opensoundboard.gui
 
 import net.minecraft.client.MinecraftClient
-import net.minecraft.client.gui.Click
 import net.minecraft.client.gui.DrawContext
-import net.minecraft.client.gui.Element
-import net.minecraft.client.gui.Selectable
 import net.minecraft.client.gui.screen.Screen
 import net.minecraft.client.gui.widget.ButtonWidget
-import net.minecraft.client.gui.widget.ElementListWidget
 import net.minecraft.client.gui.widget.TextFieldWidget
 import net.minecraft.client.gui.widget.TextWidget
 import net.minecraft.client.input.KeyInput
@@ -15,18 +11,17 @@ import net.minecraft.client.util.InputUtil
 import net.minecraft.text.Text
 import net.minecraft.util.Formatting
 import net.minecraft.util.Util
-import org.kvxd.simplesoundboard.SimpleSoundboardClient
-import org.kvxd.simplesoundboard.SoundboardAudioSystem
-import org.kvxd.simplesoundboard.config.SoundboardConfig
-import org.kvxd.simplesoundboard.gui.components.ResultListWidget
-import org.kvxd.simplesoundboard.gui.components.VolumeSlider
+import dev.xcrafttm.opensoundboard.OpenSoundboardClient
+import dev.xcrafttm.opensoundboard.SoundboardAudioSystem
+import dev.xcrafttm.opensoundboard.config.SoundboardConfig
+import dev.xcrafttm.opensoundboard.gui.components.ResultListWidget
+import dev.xcrafttm.opensoundboard.gui.components.VolumeSlider
 import org.lwjgl.glfw.GLFW
-import java.awt.Color
 import java.io.File
 
 class SoundboardScreen(
     private val parent: Screen? = null
-) : Screen(Text.translatable("gui.simplesoundboard.title")) {
+) : Screen(Text.translatable("gui.opensoundboard.title")) {
 
     private val mc = MinecraftClient.getInstance()
 
@@ -61,11 +56,11 @@ class SoundboardScreen(
         val searchFieldWidth = totalActionWidth
         val contentWidth = totalActionWidth
 
-        val titleWidget = TextWidget(Text.translatable("gui.simplesoundboard.title").formatted(Formatting.BOLD), textRenderer)
+        val titleWidget = TextWidget(Text.translatable("gui.opensoundboard.title").formatted(Formatting.BOLD), textRenderer)
         titleWidget.setPosition(width / 2 - titleWidget.width / 2, 5)
         addDrawableChild(titleWidget)
 
-        queryField = TextFieldWidget(textRenderer, width / 2 - searchFieldWidth / 2, 20, searchFieldWidth, 20, Text.translatable("gui.simplesoundboard.search_hint"))
+        queryField = TextFieldWidget(textRenderer, width / 2 - searchFieldWidth / 2, 20, searchFieldWidth, 20, Text.translatable("gui.opensoundboard.search_hint"))
         queryField.setChangedListener { scanSounds() }
         addDrawableChild(queryField)
 
@@ -73,12 +68,12 @@ class SoundboardScreen(
 
         val detailsY = height - bottomPaneHeight + 5
 
-        detailLabel = TextWidget(Text.translatable("gui.simplesoundboard.select_hint"), textRenderer)
+        detailLabel = TextWidget(Text.translatable("gui.opensoundboard.select_hint"), textRenderer)
         detailLabel.setPosition(width / 2 - detailLabel.width / 2, detailsY)
         addDrawableChild(detailLabel)
 
         if (SoundboardConfig.data.syncAudio) {
-            detailLocalSlider = VolumeSlider(width / 2 - 155, detailsY + 15, 205, 20, Text.translatable("gui.simplesoundboard.volume.synced"), 1.0f, {
+            detailLocalSlider = VolumeSlider(width / 2 - 155, detailsY + 15, 205, 20, Text.translatable("gui.opensoundboard.volume.synced"), 1.0f, {
                 updateSelectedVolume(local = it, player = it)
             })
             detailLocalSlider.active = false
@@ -88,29 +83,29 @@ class SoundboardScreen(
             detailPlayerSlider = VolumeSlider(0, 0, 0, 0, Text.empty(), 0f, {})
             detailPlayerSlider.visible = false
         } else {
-            detailLocalSlider = VolumeSlider(width / 2 - 155, detailsY + 15, 100, 20, Text.translatable("gui.simplesoundboard.volume.local"), 1.0f, {
+            detailLocalSlider = VolumeSlider(width / 2 - 155, detailsY + 15, 100, 20, Text.translatable("gui.opensoundboard.volume.local"), 1.0f, {
                 updateSelectedVolume(local = it)
             })
             detailLocalSlider.active = false
             addDrawableChild(detailLocalSlider)
 
-            detailPlayerSlider = VolumeSlider(width / 2 - 50, detailsY + 15, 100, 20, Text.translatable("gui.simplesoundboard.volume.player"), 1.0f, {
+            detailPlayerSlider = VolumeSlider(width / 2 - 50, detailsY + 15, 100, 20, Text.translatable("gui.opensoundboard.volume.player"), 1.0f, {
                 updateSelectedVolume(player = it)
             })
             detailPlayerSlider.active = false
             addDrawableChild(detailPlayerSlider)
         }
 
-        detailBindBtn = ButtonWidget.builder(Text.translatable("gui.simplesoundboard.keybind.none")) {
+        detailBindBtn = ButtonWidget.builder(Text.translatable("gui.opensoundboard.keybind.none")) {
             if (selectedFile != null) {
                 isBinding = true
-                it.message = Text.translatable("gui.simplesoundboard.keybind.listening").formatted(Formatting.YELLOW)
+                it.message = Text.translatable("gui.opensoundboard.keybind.listening").formatted(Formatting.YELLOW)
             }
         }.size(100, 20).position(width / 2 + 55, detailsY + 15).build()
         detailBindBtn.active = false
         addDrawableChild(detailBindBtn)
 
-        timelineSlider = VolumeSlider(width / 2 - 155, detailsY + 40, 310, 20, Text.translatable("gui.simplesoundboard.progress"), 0f, {
+        timelineSlider = VolumeSlider(width / 2 - 155, detailsY + 40, 310, 20, Text.translatable("gui.opensoundboard.progress"), 0f, {
             val file = selectedFile
             if (file != null && SoundboardAudioSystem.isPlaying(file.name)) {
                 SoundboardAudioSystem.setCursor(file.name, it)
@@ -128,7 +123,7 @@ class SoundboardScreen(
         timelineSlider.active = false
         addDrawableChild(timelineSlider)
 
-        timeField = TextFieldWidget(textRenderer, width / 2 - 155, detailsY + 65, 60, 20, Text.translatable("gui.simplesoundboard.time_hint"))
+        timeField = TextFieldWidget(textRenderer, width / 2 - 155, detailsY + 65, 60, 20, Text.translatable("gui.opensoundboard.time_hint"))
         timeField.setChangedListener {
             if (timeField.isFocused) {
                 val file = selectedFile ?: return@setChangedListener
@@ -180,12 +175,12 @@ class SoundboardScreen(
         loopBtn.active = true
         addDrawableChild(loopBtn)
 
-        setStartBtn = ButtonWidget.builder(Text.translatable("gui.simplesoundboard.set_start")) {
+        setStartBtn = ButtonWidget.builder(Text.translatable("gui.opensoundboard.set_start")) {
             val file = selectedFile ?: return@builder
             val data = SoundboardConfig[file.name]
             data.startingPoint = SoundboardAudioSystem.getProgress(file.name).coerceAtLeast(0f)
             SoundboardConfig.save()
-            mc.player?.sendMessage(Text.translatable("message.simplesoundboard.start_point_set", file.name), true)
+            mc.player?.sendMessage(Text.translatable("message.opensoundboard.start_point_set", file.name), true)
         }.size(100, 20).position(width / 2 + 55, detailsY + 65).build()
         setStartBtn.active = false
         addDrawableChild(setStartBtn)
@@ -217,7 +212,7 @@ class SoundboardScreen(
 
         val activeName = SoundboardAudioSystem.getActiveSoundName()
         if (activeName != null) {
-            val file = File(SimpleSoundboardClient.soundDir, activeName)
+            val file = File(OpenSoundboardClient.soundDir, activeName)
             if (file.exists()) {
                 selectSound(file)
                 val entries = resultsList.children()
@@ -241,7 +236,7 @@ class SoundboardScreen(
         var currentX = width / 2 - totalActionWidth / 2
 
         addDrawableChild(
-            ButtonWidget.builder(Text.translatable("gui.simplesoundboard.stop_all").formatted(Formatting.RED)) {
+            ButtonWidget.builder(Text.translatable("gui.opensoundboard.stop_all").formatted(Formatting.RED)) {
                 SoundboardAudioSystem.stopAll()
             }.size(actionButtonWidth, actionButtonHeight)
                 .position(currentX, actionsY).build()
@@ -249,7 +244,7 @@ class SoundboardScreen(
         currentX += actionButtonWidth + buttonSpacing
 
         addDrawableChild(
-            ButtonWidget.builder(Text.translatable("gui.simplesoundboard.refresh")) {
+            ButtonWidget.builder(Text.translatable("gui.opensoundboard.refresh")) {
                 scanSounds()
             }.size(actionButtonWidth, actionButtonHeight)
                 .position(currentX, actionsY).build()
@@ -257,15 +252,15 @@ class SoundboardScreen(
         currentX += actionButtonWidth + buttonSpacing
 
         addDrawableChild(
-            ButtonWidget.builder(Text.translatable("gui.simplesoundboard.folder")) {
-                Util.getOperatingSystem().open(SimpleSoundboardClient.soundDir)
+            ButtonWidget.builder(Text.translatable("gui.opensoundboard.folder")) {
+                Util.getOperatingSystem().open(OpenSoundboardClient.soundDir)
             }.size(actionButtonWidth, actionButtonHeight)
                 .position(currentX, actionsY).build()
         )
         currentX += actionButtonWidth + buttonSpacing
 
         addDrawableChild(
-            ButtonWidget.builder(Text.translatable("gui.simplesoundboard.config")) {
+            ButtonWidget.builder(Text.translatable("gui.opensoundboard.config")) {
                 mc.setScreen(SoundboardConfigScreen(this))
             }.size(actionButtonWidth, actionButtonHeight)
                 .position(currentX, actionsY).build()
@@ -273,7 +268,7 @@ class SoundboardScreen(
         currentX += actionButtonWidth + buttonSpacing
 
         addDrawableChild(
-            ButtonWidget.builder(Text.translatable("gui.simplesoundboard.youtube")) {
+            ButtonWidget.builder(Text.translatable("gui.opensoundboard.youtube")) {
                 mc.setScreen(YtDlpScreen(this))
             }.size(actionButtonWidth, actionButtonHeight)
                 .position(currentX, actionsY).build()
@@ -282,7 +277,7 @@ class SoundboardScreen(
 
     private fun scanSounds() {
         val query = queryField.text.trim().lowercase()
-        val allFiles = SimpleSoundboardClient.soundDir.listFiles { _, name -> name.endsWith(".mp3") } ?: emptyArray()
+        val allFiles = OpenSoundboardClient.soundDir.listFiles { _, name -> name.endsWith(".mp3") } ?: emptyArray()
 
         results = allFiles.filter { it.name.lowercase().contains(query) }
             .sortedWith(compareByDescending<File> { SoundboardConfig[it.name].favorite }
@@ -300,13 +295,13 @@ class SoundboardScreen(
         isBinding = false
 
         if (file == null) {
-            detailLabel.message = Text.translatable("gui.simplesoundboard.select_hint").formatted(Formatting.GRAY)
+            detailLabel.message = Text.translatable("gui.opensoundboard.select_hint").formatted(Formatting.GRAY)
             detailLabel.x = width / 2 - textRenderer.getWidth(detailLabel.message) / 2
 
             detailLocalSlider.active = false
             detailPlayerSlider.active = false
             detailBindBtn.active = false
-            detailBindBtn.message = Text.translatable("gui.simplesoundboard.keybind.none")
+            detailBindBtn.message = Text.translatable("gui.opensoundboard.keybind.none")
 
             timelineSlider.active = false
             timeField.active = false
@@ -317,7 +312,7 @@ class SoundboardScreen(
         } else {
             val data = SoundboardConfig[file.name]
 
-            detailLabel.message = Text.translatable("gui.simplesoundboard.settings_for", file.name).formatted(Formatting.YELLOW)
+            detailLabel.message = Text.translatable("gui.opensoundboard.settings_for", file.name).formatted(Formatting.YELLOW)
             detailLabel.x = width / 2 - textRenderer.getWidth(detailLabel.message) / 2
 
             detailLocalSlider.active = true
@@ -367,9 +362,9 @@ class SoundboardScreen(
             if (keyCode > 0)
                 InputUtil.fromKeyCode(KeyInput(keyCode, 0, 0)).localizedText
             else
-                Text.translatable("gui.simplesoundboard.keybind.none")
+                Text.translatable("gui.opensoundboard.keybind.none")
 
-        detailBindBtn.message = Text.translatable("gui.simplesoundboard.keybind.prefix").append(keyName)
+        detailBindBtn.message = Text.translatable("gui.opensoundboard.keybind.prefix").append(keyName)
     }
 
     override fun render(context: DrawContext, mouseX: Int, mouseY: Int, delta: Float) {

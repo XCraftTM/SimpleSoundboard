@@ -1,4 +1,4 @@
-package org.kvxd.simplesoundboard.config
+package dev.xcrafttm.opensoundboard.config
 
 import kotlinx.serialization.Serializable
 

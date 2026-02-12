@@ -1,4 +1,4 @@
-package org.kvxd.simplesoundboard
+package dev.xcrafttm.opensoundboard
 
 import de.maxhenkel.voicechat.api.VoicechatApi
 import de.maxhenkel.voicechat.api.VoicechatClientApi
@@ -7,7 +7,7 @@ import de.maxhenkel.voicechat.api.events.ClientVoicechatConnectionEvent
 import de.maxhenkel.voicechat.api.events.MergeClientSoundEvent
 import net.minecraft.client.MinecraftClient
 import net.minecraft.text.Text
-import org.kvxd.simplesoundboard.config.SoundboardConfig
+import dev.xcrafttm.opensoundboard.config.SoundboardConfig
 import java.io.BufferedInputStream
 import java.io.File
 import java.nio.file.Files
@@ -145,12 +145,12 @@ object SoundboardAudioSystem {
         val api = clientApi
 
         if (api == null) {
-            client.player?.sendMessage(Text.translatable("message.simplesoundboard.vc_not_connected"), true)
+            client.player?.sendMessage(Text.translatable("message.opensoundboard.vc_not_connected"), true)
             return
         }
 
         if (api.isMuted && !SoundboardConfig.data.playWhileMuted) {
-            client.player?.sendMessage(Text.translatable("message.simplesoundboard.muted_error"), true)
+            client.player?.sendMessage(Text.translatable("message.opensoundboard.muted_error"), true)
             return
         }
 
@@ -171,7 +171,7 @@ object SoundboardAudioSystem {
                     activeSounds.add(sound)
                 } else {
                     client.execute {
-                        client.player?.sendMessage(Text.translatable("message.simplesoundboard.decode_failed", file.name), false)
+                        client.player?.sendMessage(Text.translatable("message.opensoundboard.decode_failed", file.name), false)
                     }
                 }
             } catch (e: Exception) {

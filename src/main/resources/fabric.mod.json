@@ -1,30 +1,30 @@
 {
   "schemaVersion": 1,
-  "id": "simplesoundboard",
+  "id": "opensoundboard",
   "version": "${version}",
-  "name": "Simple Soundboard (Fork)",
-  "description": "Soundboard mod for Simple Voice Chat. Forked from the original Simple Soundboard mod by kvxd, with additional features and improvements.",
+  "name": "Open Soundboard",
+  "description": "A heavily modified fork of the original mod Simple Soundboard by kvxd (aka. 0x1bd on GitHub). A feature-rich soundboard for Simple Voice Chat with additional features and improvements.",
   "authors": [
     "kvxd",
     "XCraftTM"
   ],
   "contact": {
-    "homepage": "https://github.com/0x1bd/SimpleSoundboard",
-    "issues": "https://github.com/0x1bd/SimpleSoundboard/issues",
-    "sources": "https://github.com/0x1bd/SimpleSoundboard"
+    "homepage": "https://github.com/XCraftTM/OpenSoundboard",
+    "issues": "https://github.com/XCraftTM/OpenSoundboard/issues",
+    "sources": "https://github.com/XCraftTM/OpenSoundboard"
   },
-  "license": "GPL-3.0",
-  "icon": "assets/simplesoundboard/icon.png",
+  "license": "GPL-3.0-or-later",
+  "icon": "assets/opensoundboard/icon.png",
   "environment": "client",
   "entrypoints": {
     "client": [
-      "org.kvxd.simplesoundboard.SimpleSoundboardClient"
+      "dev.xcrafttm.opensoundboard.OpenSoundboardClient"
     ],
     "voicechat": [
-      "org.kvxd.simplesoundboard.integration.SoundboardPlugin"
+      "dev.xcrafttm.opensoundboard.integration.SoundboardPlugin"
     ],
     "modmenu": [
-      "org.kvxd.simplesoundboard.integration.ModMenuIntegration"
+      "dev.xcrafttm.opensoundboard.integration.ModMenuIntegration"
     ]
   },
   "depends": {

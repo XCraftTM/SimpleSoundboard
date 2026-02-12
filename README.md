@@ -1,4 +1,6 @@
-# Simple Soundboard (Fork)
+# Open Soundboard
+
+**Open Soundboard** is a heavily modified fork of the original [Simple Soundboard](https://github.com/0x1bd/SimpleSoundboard) mod by [kvxd](https://github.com/0x1bd) (aka. 0x1bd).
 
 A feature-rich soundboard mod for [Simple Voice Chat](https://modrinth.com/plugin/simple-voice-chat), providing high-quality audio playback and easy management.
 
@@ -43,7 +45,7 @@ This mod allows you to play `.mp3` files directly into your voice chat stream. I
 ## Installation
 
 1. Download and install **Fabric** and **Simple Voice Chat**.
-2. Download Simple Soundboard.
+2. Download Open Soundboard.
 3. Drop the downloaded jar file into your `mods` folder.
 4. Launch Minecraft.
 

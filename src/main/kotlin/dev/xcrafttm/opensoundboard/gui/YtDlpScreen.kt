@@ -1,9 +1,6 @@
-package org.kvxd.simplesoundboard.gui
+package dev.xcrafttm.opensoundboard.gui
 
-import net.minecraft.client.MinecraftClient
 import net.minecraft.client.gui.DrawContext
-import net.minecraft.client.gui.Element
-import net.minecraft.client.gui.Selectable
 import net.minecraft.client.gui.screen.Screen
 import net.minecraft.client.gui.widget.ButtonWidget
 import net.minecraft.client.gui.widget.CyclingButtonWidget
@@ -11,13 +8,13 @@ import net.minecraft.client.gui.widget.TextFieldWidget
 import net.minecraft.client.gui.widget.TextWidget
 import net.minecraft.text.Text
 import net.minecraft.util.Formatting
-import org.kvxd.simplesoundboard.SimpleSoundboardClient
-import org.kvxd.simplesoundboard.YtDlpManager
-import org.kvxd.simplesoundboard.gui.components.LogListWidget
+import dev.xcrafttm.opensoundboard.OpenSoundboardClient
+import dev.xcrafttm.opensoundboard.YtDlpManager
+import dev.xcrafttm.opensoundboard.gui.components.LogListWidget
 import java.awt.Color
 import java.util.concurrent.CompletableFuture
 
-class YtDlpScreen(private val parent: Screen?) : Screen(Text.translatable("gui.simplesoundboard.youtube.title")) {
+class YtDlpScreen(private val parent: Screen?) : Screen(Text.translatable("gui.opensoundboard.youtube.title")) {
 
     private lateinit var urlField: TextFieldWidget
     private lateinit var audioToggle: CyclingButtonWidget<Boolean>
@@ -37,16 +34,16 @@ class YtDlpScreen(private val parent: Screen?) : Screen(Text.translatable("gui.s
         val startX = width / 2 - contentWidth / 2
 
         urlField =
-            TextFieldWidget(textRenderer, startX, 30, contentWidth, 20, Text.translatable("gui.simplesoundboard.youtube.url_hint"))
-        urlField.setPlaceholder(Text.translatable("gui.simplesoundboard.youtube.url_hint"))
+            TextFieldWidget(textRenderer, startX, 30, contentWidth, 20, Text.translatable("gui.opensoundboard.youtube.url_hint"))
+        urlField.setPlaceholder(Text.translatable("gui.opensoundboard.youtube.url_hint"))
         urlField.setMaxLength(1024)
         addDrawableChild(urlField)
 
         audioToggle = CyclingButtonWidget.onOffBuilder(true)
-            .build(startX, 60, 150, 20, Text.translatable("gui.simplesoundboard.youtube.audio_only")) { _, _ -> }
+            .build(startX, 60, 150, 20, Text.translatable("gui.opensoundboard.youtube.audio_only")) { _, _ -> }
         addDrawableChild(audioToggle)
 
-        downloadBtn = ButtonWidget.builder(Text.translatable("gui.simplesoundboard.youtube.download")) {
+        downloadBtn = ButtonWidget.builder(Text.translatable("gui.opensoundboard.youtube.download")) {
             if (currentProcess != null) {
                 cancelDownload()
                 return@builder
@@ -55,7 +52,7 @@ class YtDlpScreen(private val parent: Screen?) : Screen(Text.translatable("gui.s
             val url = urlField.text.trim()
             if (url.isBlank()) {
                 client?.player?.sendMessage(
-                    Text.translatable("message.simplesoundboard.youtube.provide_url").formatted(Formatting.RED),
+                    Text.translatable("message.opensoundboard.youtube.provide_url").formatted(Formatting.RED),
                     false
                 )
                 return@builder
@@ -86,12 +83,12 @@ class YtDlpScreen(private val parent: Screen?) : Screen(Text.translatable("gui.s
             logList.addLine("> Cancelling download...")
             currentProcess?.destroy()
             currentProcess = null
-            statusLabel.message = Text.translatable("message.simplesoundboard.youtube.cancelled").formatted(Formatting.YELLOW)
+            statusLabel.message = Text.translatable("message.opensoundboard.youtube.cancelled").formatted(Formatting.YELLOW)
         }
     }
 
     private fun startDownload(url: String, audioOnly: Boolean) {
-        statusLabel.message = Text.translatable("message.simplesoundboard.youtube.downloading")
+        statusLabel.message = Text.translatable("message.opensoundboard.youtube.downloading")
         progress = 0
         logList.clearLogs()
         logList.addLine("> Starting download...")
@@ -119,7 +116,7 @@ class YtDlpScreen(private val parent: Screen?) : Screen(Text.translatable("gui.s
                 client?.execute {
                     currentProcess = null
                     if (result.first) {
-                        statusLabel.message = Text.translatable("message.simplesoundboard.youtube.finished").formatted(Formatting.GREEN)
+                        statusLabel.message = Text.translatable("message.opensoundboard.youtube.finished").formatted(Formatting.GREEN)
                         progress = 100
                     } else {
                         // If we cancelled, the message might already be set, but the result will be false.
@@ -127,13 +124,13 @@ class YtDlpScreen(private val parent: Screen?) : Screen(Text.translatable("gui.s
                         // Actually, if we cancelled, currentProcess was set to null in cancelDownload, but the background thread
                         // continues to the end of downloadUrlIntoSoundDir which returns.
                         // If we cancelled, the result.second likely contains an error from the stream closing or process kill.
-                        statusLabel.message = Text.translatable("message.simplesoundboard.youtube.failed").formatted(Formatting.RED)
+                        statusLabel.message = Text.translatable("message.opensoundboard.youtube.failed").formatted(Formatting.RED)
                     }
                 }
             } catch (e: Exception) {
                 client?.execute {
                     currentProcess = null
-                    statusLabel.message = Text.translatable("message.simplesoundboard.youtube.failed").formatted(Formatting.RED)
+                    statusLabel.message = Text.translatable("message.opensoundboard.youtube.failed").formatted(Formatting.RED)
                     logList.addLine("> Error: ${e.message}")
                 }
             }
@@ -145,9 +142,9 @@ class YtDlpScreen(private val parent: Screen?) : Screen(Text.translatable("gui.s
 
         // Update button text periodically or every frame based on state
         if (currentProcess != null) {
-            downloadBtn.message = Text.translatable("gui.simplesoundboard.youtube.cancel").formatted(Formatting.RED)
+            downloadBtn.message = Text.translatable("gui.opensoundboard.youtube.cancel").formatted(Formatting.RED)
         } else {
-            downloadBtn.message = Text.translatable("gui.simplesoundboard.youtube.download")
+            downloadBtn.message = Text.translatable("gui.opensoundboard.youtube.download")
         }
 
         context.drawCenteredTextWithShadow(textRenderer, title.asOrderedText(), width / 2, 8, 0xFFFFFF)
@@ -163,7 +160,7 @@ class YtDlpScreen(private val parent: Screen?) : Screen(Text.translatable("gui.s
         context.fill(barX, barY, barX + barW, barY + 5, 0xFF555555.toInt())
         context.fill(barX, barY, barX + filled, barY + 5, 0xFF00AA00.toInt())
 
-        val folderText = Text.translatable("gui.simplesoundboard.youtube.save_folder", SimpleSoundboardClient.soundDir.absolutePath)
+        val folderText = Text.translatable("gui.opensoundboard.youtube.save_folder", OpenSoundboardClient.soundDir.absolutePath)
         val folderTextWidth = textRenderer.getWidth(folderText)
         context.drawText(
             textRenderer,

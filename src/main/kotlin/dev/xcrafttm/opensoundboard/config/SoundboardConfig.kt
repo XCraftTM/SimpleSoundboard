@@ -1,4 +1,4 @@
-package org.kvxd.simplesoundboard.config
+package dev.xcrafttm.opensoundboard.config
 
 import kotlinx.serialization.json.Json
 import net.fabricmc.loader.api.FabricLoader
@@ -11,7 +11,7 @@ object SoundboardConfig {
         ignoreUnknownKeys = true
     }
 
-    private val configFile = File(FabricLoader.getInstance().configDir.toFile(), "simplesoundboard.json")
+    private val configFile = File(FabricLoader.getInstance().configDir.toFile(), "opensoundboard.json")
 
     var data: ConfigData = ConfigData()
 

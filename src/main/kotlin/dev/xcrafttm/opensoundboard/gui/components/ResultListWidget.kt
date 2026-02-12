@@ -1,4 +1,4 @@
-package org.kvxd.simplesoundboard.gui.components
+package dev.xcrafttm.opensoundboard.gui.components
 
 import net.minecraft.client.MinecraftClient
 import net.minecraft.client.gui.Click
@@ -9,9 +9,8 @@ import net.minecraft.client.gui.widget.ButtonWidget
 import net.minecraft.client.gui.widget.ElementListWidget
 import net.minecraft.text.Text
 import net.minecraft.util.Formatting
-import org.kvxd.simplesoundboard.SoundboardAudioSystem
-import org.kvxd.simplesoundboard.config.SoundboardConfig
-import java.awt.Color
+import dev.xcrafttm.opensoundboard.SoundboardAudioSystem
+import dev.xcrafttm.opensoundboard.config.SoundboardConfig
 import java.io.File
 
 class ResultListWidget(
@@ -59,7 +58,7 @@ class ResultListWidget(
                 onRefresh()
             }.size(20, 20).build()
 
-            playBtn = ButtonWidget.builder(Text.translatable("gui.simplesoundboard.play")) {
+            playBtn = ButtonWidget.builder(Text.translatable("gui.opensoundboard.play")) {
                 if (SoundboardAudioSystem.isPlaying(file.name)) {
                     SoundboardAudioSystem.stop(file.name)
                 } else {
@@ -91,7 +90,7 @@ class ResultListWidget(
 
             val isPlaying = SoundboardAudioSystem.isPlaying(file.name)
             playBtn.message =
-                if (isPlaying) Text.translatable("gui.simplesoundboard.stop").formatted(Formatting.RED) else Text.translatable("gui.simplesoundboard.play")
+                if (isPlaying) Text.translatable("gui.opensoundboard.stop").formatted(Formatting.RED) else Text.translatable("gui.opensoundboard.play")
 
             val textRenderer = client.textRenderer
             val textY = entryY + (itemHeight - textRenderer.fontHeight) / 2

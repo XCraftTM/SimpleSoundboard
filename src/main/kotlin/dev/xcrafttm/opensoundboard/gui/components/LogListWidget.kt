@@ -1,4 +1,4 @@
-package org.kvxd.simplesoundboard.gui.components
+package dev.xcrafttm.opensoundboard.gui.components
 
 import net.minecraft.client.MinecraftClient
 import net.minecraft.client.gui.DrawContext

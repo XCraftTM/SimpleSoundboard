@@ -1,4 +1,4 @@
-package org.kvxd.simplesoundboard
+package dev.xcrafttm.opensoundboard
 
 import net.fabricmc.api.ClientModInitializer
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLifecycleEvents
@@ -9,18 +9,18 @@ import net.minecraft.client.MinecraftClient
 import net.minecraft.client.option.KeyBinding
 import net.minecraft.client.util.InputUtil
 import net.minecraft.util.Identifier
-import org.kvxd.simplesoundboard.config.SoundboardConfig
-import org.kvxd.simplesoundboard.gui.SoundboardScreen
+import dev.xcrafttm.opensoundboard.config.SoundboardConfig
+import dev.xcrafttm.opensoundboard.gui.SoundboardScreen
 import org.lwjgl.glfw.GLFW
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import java.io.File
 
-class SimpleSoundboardClient : ClientModInitializer {
+class OpenSoundboardClient : ClientModInitializer {
 
     companion object {
 
-        const val MOD_ID = "simplesoundboard"
+        const val MOD_ID = "opensoundboard"
         val LOGGER: Logger? = LoggerFactory.getLogger(MOD_ID)
 
         val KEY_CATEGORY: KeyBinding.Category = KeyBinding.Category.create(Identifier.of(MOD_ID, "main"))

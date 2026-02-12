@@ -1,4 +1,4 @@
-package org.kvxd.simplesoundboard.gui.components
+package dev.xcrafttm.opensoundboard.gui.components
 
 import net.minecraft.client.MinecraftClient
 import net.minecraft.client.gui.DrawContext
@@ -37,7 +37,7 @@ class VolumeSlider(
 
         val tr = MinecraftClient.getInstance().textRenderer
 
-        val drawText = Text.translatable("gui.simplesoundboard.volume.none_format", prefix)
+        val drawText = Text.translatable("gui.opensoundboard.volume.none_format", prefix)
 
         val textWidth = tr.getWidth(drawText)
         val textX = this.x + (this.width - textWidth) / 2
@@ -52,7 +52,7 @@ class VolumeSlider(
             message = messageProvider.invoke(value.toFloat())
         } else {
             val percent = (value * 100).roundToInt()
-            message = Text.translatable("gui.simplesoundboard.volume.format", prefix, percent)
+            message = Text.translatable("gui.opensoundboard.volume.format", prefix, percent)
         }
     }
 

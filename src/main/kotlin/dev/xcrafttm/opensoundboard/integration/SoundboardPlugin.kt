@@ -1,16 +1,16 @@
-package org.kvxd.simplesoundboard.integration
+package dev.xcrafttm.opensoundboard.integration
 
 import de.maxhenkel.voicechat.api.VoicechatApi
 import de.maxhenkel.voicechat.api.VoicechatPlugin
 import de.maxhenkel.voicechat.api.events.ClientVoicechatConnectionEvent
 import de.maxhenkel.voicechat.api.events.EventRegistration
 import de.maxhenkel.voicechat.api.events.MergeClientSoundEvent
-import org.kvxd.simplesoundboard.SimpleSoundboardClient
-import org.kvxd.simplesoundboard.SoundboardAudioSystem
+import dev.xcrafttm.opensoundboard.OpenSoundboardClient
+import dev.xcrafttm.opensoundboard.SoundboardAudioSystem
 
 class SoundboardPlugin : VoicechatPlugin {
 
-    override fun getPluginId(): String = "${SimpleSoundboardClient.MOD_ID}_plugin"
+    override fun getPluginId(): String = "${OpenSoundboardClient.MOD_ID}_plugin"
 
     override fun initialize(api: VoicechatApi) {
         SoundboardAudioSystem.initialize(api)

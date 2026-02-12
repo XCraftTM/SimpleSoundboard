@@ -1,4 +1,4 @@
-package org.kvxd.simplesoundboard
+package dev.xcrafttm.opensoundboard
 
 import net.minecraft.util.Util
 import java.io.BufferedInputStream
@@ -25,13 +25,13 @@ object YtDlpManager {
         "https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-linux64-gpl-shared.tar.xz"
 
     private fun binFile(): File {
-        if (!SimpleSoundboardClient.modDir.exists()) SimpleSoundboardClient.modDir.mkdirs()
-        return File(SimpleSoundboardClient.modDir, binaryName)
+        if (!OpenSoundboardClient.modDir.exists()) OpenSoundboardClient.modDir.mkdirs()
+        return File(OpenSoundboardClient.modDir, binaryName)
     }
 
     private fun ffmpegBinFile(): File {
-        if (!SimpleSoundboardClient.modDir.exists()) SimpleSoundboardClient.modDir.mkdirs()
-        return File(SimpleSoundboardClient.modDir, ffmpegBinaryName)
+        if (!OpenSoundboardClient.modDir.exists()) OpenSoundboardClient.modDir.mkdirs()
+        return File(OpenSoundboardClient.modDir, ffmpegBinaryName)
     }
 
     @Synchronized
@@ -61,13 +61,13 @@ object YtDlpManager {
 
         return try {
             val archiveName = if (isWindows) "ffmpeg.zip" else "ffmpeg.tar.xz"
-            val archiveFile = File(SimpleSoundboardClient.modDir, archiveName)
+            val archiveFile = File(OpenSoundboardClient.modDir, archiveName)
             downloadBinary(ffmpegDownloadUrl, archiveFile)
 
             if (isWindows) {
-                extractZip(archiveFile, SimpleSoundboardClient.modDir)
+                extractZip(archiveFile, OpenSoundboardClient.modDir)
             } else {
-                extractTarXz(archiveFile, SimpleSoundboardClient.modDir)
+                extractTarXz(archiveFile, OpenSoundboardClient.modDir)
             }
 
             archiveFile.delete()
@@ -127,7 +127,7 @@ object YtDlpManager {
             instanceFollowRedirects = true
             connectTimeout = 15_000
             readTimeout = 30_000
-            setRequestProperty("User-Agent", "SimpleSoundboard-Downloader")
+            setRequestProperty("User-Agent", "OpenSoundboard-Downloader")
         }
 
         conn.connect()
@@ -152,15 +152,15 @@ object YtDlpManager {
         onProgress: (String) -> Unit = {},
         onProcessStart: (Process) -> Unit = {}
     ): Pair<Boolean, String> {
-        if (url.isBlank()) return Pair(false, "message.simplesoundboard.empty_url")
+        if (url.isBlank()) return Pair(false, "message.opensoundboard.empty_url")
 
         if (!ensureBinariesPresent()) {
-            return Pair(false, "message.simplesoundboard.binaries_missing")
+            return Pair(false, "message.opensoundboard.binaries_missing")
         }
 
         val bin = binFile()
         val ffmpegBin = ffmpegBinFile()
-        val soundDir = SimpleSoundboardClient.soundDir.also { if (!it.exists()) it.mkdirs() }
+        val soundDir = OpenSoundboardClient.soundDir.also { if (!it.exists()) it.mkdirs() }
 
         val outputPattern = File(soundDir, "%(title)s.%(ext)s").absolutePath
         val args = mutableListOf<String>()
@@ -211,15 +211,15 @@ object YtDlpManager {
             val finished = proc.waitFor(10, TimeUnit.MINUTES)
             if (!finished) {
                 proc.destroyForcibly()
-                return Pair(false, "message.simplesoundboard.youtube.timeout")
+                return Pair(false, "message.opensoundboard.youtube.timeout")
             }
 
             val exit = proc.exitValue()
             val outStr = output.toString()
             return if (exit == 0) {
-                Pair(true, outStr.ifBlank { "message.simplesoundboard.download_completed" })
+                Pair(true, outStr.ifBlank { "message.opensoundboard.download_completed" })
             } else {
-                Pair(false, "message.simplesoundboard.youtube.exit_code")
+                Pair(false, "message.opensoundboard.youtube.exit_code")
             }
         } catch (t: Throwable) {
             t.printStackTrace()

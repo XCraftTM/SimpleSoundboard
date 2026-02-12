@@ -1,9 +1,9 @@
-package org.kvxd.simplesoundboard.integration
+package dev.xcrafttm.opensoundboard.integration
 
 import com.terraformersmc.modmenu.api.ConfigScreenFactory
 import com.terraformersmc.modmenu.api.ModMenuApi
 import net.minecraft.client.gui.screen.Screen
-import org.kvxd.simplesoundboard.gui.SoundboardConfigScreen
+import dev.xcrafttm.opensoundboard.gui.SoundboardConfigScreen
 
 class ModMenuIntegration : ModMenuApi {
 
