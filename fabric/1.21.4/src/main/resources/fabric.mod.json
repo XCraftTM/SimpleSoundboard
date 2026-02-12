@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 1,
+  "id": "opensoundboard",
+  "version": "${version}",
+  "name": "Open Soundboard",
+  "description": "A heavily modified fork of the original mod Simple Soundboard by kvxd (aka. 0x1bd on GitHub). A feature-rich soundboard for Simple Voice Chat with additional features and improvements.",
+  "authors": [
+    "kvxd",
+    "XCraftTM"
+  ],
+  "contact": {
+    "homepage": "https://github.com/XCraftTM/OpenSoundboard",
+    "issues": "https://github.com/XCraftTM/OpenSoundboard/issues",
+    "sources": "https://github.com/XCraftTM/OpenSoundboard"
+  },
+  "license": "GPL-3.0-or-later",
+  "icon": "assets/opensoundboard/icon.png",
+  "environment": "client",
+  "entrypoints": {
+    "client": [
+      "dev.xcrafttm.opensoundboard.OpenSoundboardClient"
+    ],
+    "voicechat": [
+      "dev.xcrafttm.opensoundboard.integration.SoundboardPlugin"
+    ],
+    "modmenu": [
+      "dev.xcrafttm.opensoundboard.integration.ModMenuIntegration"
+    ]
+  },
+  "depends": {
+    "fabricloader": ">=${loader_version}",
+    "fabric-language-kotlin": ">=${kotlin_loader_version}",
+    "fabric": "*",
+    "minecraft": "${minecraft_version}",
+    "voicechat_api": ">=${voicechat_api_version}"
+  }
+}

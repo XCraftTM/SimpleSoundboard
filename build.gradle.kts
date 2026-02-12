@@ -1,103 +1,52 @@
-import org.jetbrains.kotlin.gradle.dsl.JvmTarget
-import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
+import org.gradle.api.tasks.Copy
+import java.io.File
+
+allprojects {
+    repositories {
+        mavenCentral()
+        maven("https://maven.fabricmc.net/")
+        maven("https://maven.terraformersmc.com/")
+        maven("https://maven.maxhenkel.de/repository/public")
+        maven("https://api.modrinth.com/maven") {
+            content { includeGroup("maven.modrinth") }
+        }
+    }
+}
 
 plugins {
-    kotlin("jvm") version "2.2.21"
-    id("org.jetbrains.kotlin.plugin.serialization") version "2.2.21"
-    id("fabric-loom") version "1.13-SNAPSHOT"
-    id("maven-publish")
+    base
+    id("fabric-loom") version "1.14-SNAPSHOT" apply false
+    kotlin("jvm") version "2.2.21" apply false
+    id("org.jetbrains.kotlin.plugin.serialization") version "2.2.21" apply false
 }
 
-version = project.property("mod_version") as String
-group = project.property("maven_group") as String
-
-base {
-    archivesName.set(project.property("archives_base_name") as String)
+subprojects {
+    apply(plugin = "maven-publish")
+    apply(plugin = "org.jetbrains.kotlin.jvm")
+    apply(plugin = "org.jetbrains.kotlin.plugin.serialization")
 }
 
-val targetJavaVersion = 21
-java {
-    toolchain.languageVersion = JavaLanguageVersion.of(targetJavaVersion)
-
-    withSourcesJar()
+tasks.named("assemble") {
+    dependsOn("collectJars")
 }
 
+val jarsDir: Any = layout.projectDirectory.dir("jars")
 
+// Collect all remapped jars from subprojects that apply Loom
+val collectJars = tasks.register("collectJars", Copy::class) {
+    group = "build"
+    description = "Collect remapped jars from all Loom subprojects into /jars."
 
-repositories {
-    mavenCentral()
-    maven("https://maven.maxhenkel.de/repository/public") {
-        name = "henkelmax.public"
-    }
-    maven("https://api.modrinth.com/maven") {
-        name = "Modrinth"
-        content {
-            includeGroup("maven.modrinth")
+    into(jarsDir)
+
+    // Only from projects that actually have Loom's remapJar task
+    subprojects.forEach { p ->
+        val remap = p.tasks.findByName("remapJar")
+        if (remap != null) {
+            dependsOn(remap)
+
+            // remapJar produces the distributable mod jar
+            from(p.tasks.named("remapJar").map { it.outputs.files }) {}
         }
-    }
-
-    maven("https://maven.terraformersmc.com/") {
-        name = "Terraformers"
-    }
-}
-
-dependencies {
-    minecraft("com.mojang:minecraft:${project.property("minecraft_version")}")
-    mappings("net.fabricmc:yarn:${project.property("yarn_mappings")}:v2")
-    modImplementation("net.fabricmc:fabric-loader:${project.property("loader_version")}")
-    modImplementation("net.fabricmc:fabric-language-kotlin:${project.property("kotlin_loader_version")}")
-
-    modImplementation("net.fabricmc.fabric-api:fabric-api:${project.property("fabric_version")}")
-
-    implementation("de.maxhenkel.voicechat:voicechat-api:${project.property("voicechat_api_version")}")
-    implementation("de.maxhenkel.voicechat:voicechat-api:${project.property("voicechat_api_version")}:fabric-stub")
-
-    modRuntimeOnly("maven.modrinth:simple-voice-chat:fabric-${project.property("voicechat_mod_version")}")
-
-    modImplementation("com.terraformersmc:modmenu:${property("modmenu_version")}")
-}
-
-tasks.processResources {
-    inputs.property("version", project.version)
-    inputs.property("minecraft_version", project.property("minecraft_version"))
-    inputs.property("loader_version", project.property("loader_version"))
-    filteringCharset = "UTF-8"
-
-    filesMatching("fabric.mod.json") {
-        expand(
-            "version" to project.version,
-            "minecraft_version" to project.property("minecraft_version"),
-            "loader_version" to project.property("loader_version"),
-            "kotlin_loader_version" to project.property("kotlin_loader_version"),
-            "voicechat_api_version" to project.property("voicechat_api_version"),
-        )
-    }
-}
-
-tasks.withType<JavaCompile>().configureEach {
-    options.encoding = "UTF-8"
-    options.release.set(targetJavaVersion)
-}
-
-tasks.withType<KotlinCompile>().configureEach {
-    compilerOptions.jvmTarget.set(JvmTarget.fromTarget(targetJavaVersion.toString()))
-}
-
-tasks.jar {
-    from("LICENSE") {
-        rename { "${it}_${project.base.archivesName.get()}" }
-    }
-}
-
-publishing {
-    publications {
-        create<MavenPublication>("mavenJava") {
-            artifactId = project.property("archives_base_name") as String
-            from(components["java"])
-        }
-    }
-
-    repositories {
-
     }
 }
