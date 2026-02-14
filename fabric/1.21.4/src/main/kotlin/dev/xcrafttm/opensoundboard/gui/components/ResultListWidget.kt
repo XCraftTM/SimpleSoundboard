@@ -24,7 +24,7 @@ class ResultListWidget(
     private val getSelectedFile: () -> File?
 ) : ElementListWidget<ResultListWidget.Entry>(client, width, height, listY, itemHeight) {
 
-    private val horizontalPadding = 6
+    private val horizontalPadding = 12
 
     init {
         this.x = listX
